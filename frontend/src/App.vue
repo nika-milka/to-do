@@ -28,7 +28,7 @@
                       :class="{ active: activeTab === 'login' }"
                       @click="activeTab = 'login'"
                     >
-                      Вход
+                      Вход на сайт 
                     </button>
                   </li>
                   <li class="nav-item">
