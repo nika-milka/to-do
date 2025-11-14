@@ -2,23 +2,37 @@
 
 on:
   pull_request:
-    branches: [dev]
+    branches: [ dev, main ]
   push:
-    branches: [dev]
+    branches: [ dev ]
 
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
-      uses: actions/checkout        echo \" CI Pipeline completed successfully\"
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
         
-    - name: Simple test
+    - name: Display Python version
+      run: python --version
+        
+    - name: List files
+      run: ls -la
+      
+    - name: Run Python test
       run: |
+        echo \" Starting CI Pipeline\"
         if [ -f ci_test.py ]; then
           echo \"Running ci_test.py:\"
           python ci_test.py
         else
-          echo \"No ci_test.py found\"
+          echo \"ci_test.py not found\"
+          find . -name \"*.py\" -type f
         fi
+        echo \"✅ CI Pipeline completed\"
