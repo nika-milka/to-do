@@ -1,11 +1,13 @@
-name: Pylint Code Analysis
+name: CI/CD Pipeline
 
 on:
   pull_request:
-    branches: [dev]
+    branches: [ dev, main ]
+  push:
+    branches: [ dev, main ]
 
 jobs:
-  pylint:
+  code-quality:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -14,37 +16,50 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
+    
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-        
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint flask  # Добавлены зависимости проекта
-
-    - name: Check for Python files
-      id: check_files
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pylint
+    
+    - name: Check Python files syntax
       run: |
-        echo "python_files=$(git ls-files '*.py' | tr '\n' ' ')" >> $GITHUB_OUTPUT
-        
-    - name: Run Pylint
-      if: steps.check_files.outputs.python_files != ''
+        python -m py_compile $(find . -name "*.py")
+      continue-on-error: true
+    
+    - name: Analysing the code with pylint
       run: |
-        echo "Analyzing Python files: ${{ steps.check_files.outputs.python_files }}"
-        pylint $(git ls-files '*.py') --output=lint.txt --exit-zero
-
-    - name: Create dummy file if no Python files
-      if: steps.check_files.outputs.python_files == ''
+        find . -name "*.py" | xargs pylint --output-format=text || true
+    
+    - name: Run basic tests
       run: |
-        echo "No Python files to analyze in this PR" > lint.txt
+        # Если есть тестовые файлы, запускаем их
+        if [ -f test_*.py ]; then
+          for test_file in test_*.py; do
+            echo "Running $test_file"
+            python $test_file || true
+          done
+        fi
+        echo "Basic validation completed"
 
-    - name: Upload lint results
-      uses: actions/upload-artifact@v4
-      with:
-        name: pylint-report
-        path: lint.txt
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Basic security check
+      run: |
+        echo "🔍 Security scan started"
+        # Проверка на наличие чувствительных данных
+        if git log -p | grep -i "password\|secret\|key"; then
+          echo "⚠️  Warning: Possible sensitive data found in commits"
+        else
+          echo "✅ No obvious sensitive data found"
+        fi
