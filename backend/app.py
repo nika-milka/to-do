@@ -46,7 +46,7 @@ class Task(db.Model):
 # Создаем таблицы
 with app.app_context():
     db.create_all()
-    print("✅ База данных инициализирована")
+    print("✅ База данных создана")
 
 # JWT функции
 def create_token(user_id):
